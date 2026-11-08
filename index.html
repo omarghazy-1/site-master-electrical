@@ -1,0 +1,2465 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Site Master Electrical - مهندس الموقع الكهربائي</title>
+    <!-- Web App Manifest & PWA Theme -->
+    <meta name="theme-color" content="#0F172A">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="تطبيق إدارة موقع الأعمال الكهربائية، العمالة، الخامات، الفواتير، ويوميات الموقع مع العمل بدون إنترنت كلياً">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            800: '#1E293B',
+                            900: '#0F172A',
+                            950: '#0A0F1D'
+                        },
+                        amber: {
+                            500: '#F59E0B',
+                            600: '#D97706'
+                        }
+                    },
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- PDF Generation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #F59E0B;
+        }
+
+        /* Printable PDF Styling Guard */
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white !important; color: black !important; }
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col pb-20 md:pb-0 md:pr-64 selection:bg-amber-500 selection:text-slate-950">
+
+    <!-- Top App Bar -->
+    <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between no-print">
+        <div class="flex items-center gap-3">
+            <button id="btn-toggle-sidebar" class="md:hidden text-slate-400 hover:text-amber-500 p-2 rounded-lg">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+            <div class="flex items-center gap-2">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20 text-slate-950 font-black text-lg">
+                    ⚡
+                </div>
+                <div>
+                    <h1 class="font-bold text-sm leading-tight text-white">Site Master <span class="text-amber-500 text-xs font-normal">Electrical</span></h1>
+                    <div id="active-project-badge" class="text-xs text-amber-500 flex items-center gap-1 font-semibold cursor-pointer" onclick="switchTab('projects')">
+                        <i class="fa-solid fa-building text-[10px]"></i> <span id="current-project-name">جاري تحميل المشروع...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <!-- Persistent Storage Status Indicator -->
+            <span id="storage-status-badge" title="حالة حفظ البيانات الدائمة" class="hidden sm:flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold">
+                <i class="fa-solid fa-shield-halved"></i> حفظ دائم مفعل
+            </span>
+
+            <!-- Install PWA Button -->
+            <button id="btn-pwa-install" class="hidden bg-amber-500/10 border border-amber-500/30 text-amber-500 hover:bg-amber-500 hover:text-slate-950 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5">
+                <i class="fa-solid fa-download"></i> <span class="hidden sm:inline">تثبيت التطبيق</span>
+            </button>
+
+            <!-- Quick Action Add Button -->
+            <button onclick="openModal('quick-add-modal')" class="bg-amber-500 hover:bg-amber-600 text-slate-950 w-9 h-9 rounded-xl flex items-center justify-center font-bold shadow-md shadow-amber-500/20 active:scale-95 transition">
+                <i class="fa-solid fa-plus text-lg"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Sidebar Navigation (Desktop & Mobile Drawer) -->
+    <aside id="sidebar" class="fixed top-0 right-0 h-full w-64 bg-slate-950 border-l border-slate-800 z-50 transform translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col no-print">
+        <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-bolt text-amber-500 text-xl"></i>
+                <span class="font-extrabold text-slate-100 text-lg">مهندس الموقع</span>
+            </div>
+            <button id="btn-close-sidebar" class="md:hidden text-slate-400 hover:text-white p-1">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+
+        <div class="p-3">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3">
+                <label class="text-[11px] text-slate-400 font-medium block mb-1">المشروع الحالي النشط:</label>
+                <select id="sidebar-project-select" onchange="changeActiveProject(this.value)" class="w-full bg-slate-950 border border-slate-700 text-amber-500 font-bold rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-amber-500">
+                    <!-- Projects list populated dynamically -->
+                </select>
+            </div>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-1 overflow-y-auto p-3 space-y-1">
+            <button onclick="switchTab('dashboard')" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-900 hover:text-amber-500 transition active-nav" data-tab="dashboard">
+                <i class="fa-solid fa-chart-pie w-5 text-center text-amber-500"></i> لوحة التحكم
+            </button>
+            <button onclick="switchTab('projects')" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-900 hover:text-amber-500 transition" data-tab="projects">
+                <i class="fa-solid fa-city w-5 text-center text-amber-500"></i> مشاريعي
+            </button>
+            <button onclick="switchTab('manpower')" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-900 hover:text-amber-500 transition" data-tab="manpower">
+                <i class="fa-solid fa-users-gear w-5 text-center text-amber-500"></i> حصر العمالة
+            </button>
+            <button onclick="switchTab('materials')" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-900 hover:text-amber-500 transition" data-tab="materials">
+                <i class="fa-solid fa-boxes-stacked w-5 text-center text-amber-500"></i> حصر الخامات
+            </button>
+            <button onclick="switchTab('invoices')" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-900 hover:text-amber-500 transition" data-tab="invoices">
+                <i class="fa-solid fa-file-invoice-dollar w-5 text-center text-amber-500"></i> الفواتير والمصروفات
+            </button>
+            <button onclick="switchTab('archive')" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-900 hover:text-amber-500 transition" data-tab="archive">
+                <i class="fa-solid fa-images w-5 text-center text-amber-500"></i> أرشيف الفواتير
+            </button>
+            <button onclick="switchTab('daily-report')" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-900 hover:text-amber-500 transition" data-tab="daily-report">
+                <i class="fa-solid fa-clipboard-list w-5 text-center text-amber-500"></i> يومية الموقع
+            </button>
+            <button onclick="switchTab('reports')" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-900 hover:text-amber-500 transition" data-tab="reports">
+                <i class="fa-solid fa-file-pdf w-5 text-center text-amber-500"></i> تصدير التقارير
+            </button>
+            <button onclick="switchTab('backup')" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-900 hover:text-amber-500 transition" data-tab="backup">
+                <i class="fa-solid fa-database w-5 text-center text-amber-500"></i> النسخ الاحتياطي
+            </button>
+            <button onclick="switchTab('settings')" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-900 hover:text-amber-500 transition" data-tab="settings">
+                <i class="fa-solid fa-sliders w-5 text-center text-amber-500"></i> الإعدادات
+            </button>
+        </nav>
+
+        <div class="p-3 border-t border-slate-800 text-center text-xs text-slate-500 flex justify-between items-center">
+            <span>إصدار PWA 3.0 (Offline)</span>
+            <button onclick="showProjectProgressModal()" class="text-amber-500 hover:underline">عن التطبيق</button>
+        </div>
+    </aside>
+
+    <!-- Overlay for Sidebar Mobile -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-slate-950/70 z-40 hidden backdrop-blur-sm no-print"></div>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 p-3 sm:p-5 max-w-7xl mx-auto w-full">
+
+        <!-- TAB 1: DASHBOARD -->
+        <section id="tab-dashboard" class="tab-content space-y-5 animate-fade-in">
+            <!-- Welcome Header -->
+            <div class="bg-gradient-to-r from-slate-800 to-slate-900 border border-slate-700/60 rounded-2xl p-4 sm:p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <span class="text-xs font-bold text-amber-500 uppercase tracking-wider">لوحة القيادة والمتابعة</span>
+                    <h2 class="text-xl sm:text-2xl font-black text-white mt-0.5">مرحباً بك، <span id="dash-engineer-name">المهندس</span></h2>
+                    <p class="text-xs sm:text-sm text-slate-400 mt-1">ملخص الإحصائيات والأعمال المسجلة لمشروع: <strong id="dash-project-name" class="text-amber-400">...</strong></p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <select id="dash-timeframe" onchange="renderDashboard()" class="bg-slate-950 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500">
+                        <option value="all">كل الفترات</option>
+                        <option value="month">الشهر الحالي</option>
+                        <option value="week">الأسبوع الحالي</option>
+                    </select>
+                    <button onclick="renderDashboard()" class="bg-slate-800 hover:bg-slate-700 text-amber-500 p-2 rounded-xl border border-slate-700">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPI Metric Cards Grid -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 sm:p-4 hover:border-slate-700 transition">
+                    <div class="flex justify-between items-start">
+                        <span class="text-xs font-bold text-slate-400">إجمالي العمالة</span>
+                        <span class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center text-sm"><i class="fa-solid fa-user-group"></i></span>
+                    </div>
+                    <div class="mt-2">
+                        <span id="kpi-manpower-total" class="text-xl sm:text-2xl font-black text-white">0</span>
+                        <span class="text-xs text-slate-500 block">صنايعية: <b id="kpi-craftsmen" class="text-slate-300">0</b> | مساعدين: <b id="kpi-helpers" class="text-slate-300">0</b></span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 sm:p-4 hover:border-slate-700 transition">
+                    <div class="flex justify-between items-start">
+                        <span class="text-xs font-bold text-slate-400">إجمالي المصروفات</span>
+                        <span class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center text-sm"><i class="fa-solid fa-coins"></i></span>
+                    </div>
+                    <div class="mt-2">
+                        <span id="kpi-expenses-total" class="text-xl sm:text-2xl font-black text-amber-500">0</span>
+                        <span class="text-xs text-slate-400 mr-1 inline-block currency-label">EGP</span>
+                        <span class="text-xs text-slate-500 block">شامل جميع الفواتير</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 sm:p-4 hover:border-slate-700 transition">
+                    <div class="flex justify-between items-start">
+                        <span class="text-xs font-bold text-slate-400">فواتير أوبر/مواصلات</span>
+                        <span class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm"><i class="fa-solid fa-car"></i></span>
+                    </div>
+                    <div class="mt-2">
+                        <span id="kpi-uber-total" class="text-xl sm:text-2xl font-black text-white">0</span>
+                        <span class="text-xs text-slate-400 mr-1 currency-label">EGP</span>
+                        <span class="text-xs text-slate-500 block">عدد الفواتير: <b id="kpi-uber-count" class="text-slate-300">0</b></span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 sm:p-4 hover:border-slate-700 transition">
+                    <div class="flex justify-between items-start">
+                        <span class="text-xs font-bold text-slate-400">فواتير الأكل والوجبات</span>
+                        <span class="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-400 flex items-center justify-center text-sm"><i class="fa-solid fa-utensils"></i></span>
+                    </div>
+                    <div class="mt-2">
+                        <span id="kpi-food-total" class="text-xl sm:text-2xl font-black text-white">0</span>
+                        <span class="text-xs text-slate-400 mr-1 currency-label">EGP</span>
+                        <span class="text-xs text-slate-500 block">عدد الفواتير: <b id="kpi-food-count" class="text-slate-300">0</b></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Second Row KPIs & Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <!-- Breakdown Stats -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
+                    <h3 class="font-bold text-sm text-slate-200 border-b border-slate-800 pb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-pie-chart text-amber-500"></i> توزيع المصروفات والخامات
+                    </h3>
+                    
+                    <div class="space-y-4 my-4">
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-400">فواتير الخامات</span>
+                                <span class="font-bold text-amber-400"><span id="dash-mat-inv-val">0</span> <span class="currency-label">EGP</span></span>
+                            </div>
+                            <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+                                <div id="dash-bar-mat" class="bg-amber-500 h-2.5 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-400">انتقالات وأوبر</span>
+                                <span class="font-bold text-emerald-400"><span id="dash-uber-inv-val">0</span> <span class="currency-label">EGP</span></span>
+                            </div>
+                            <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+                                <div id="dash-bar-uber" class="bg-emerald-500 h-2.5 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span class="text-slate-400">وجبات وأغذية</span>
+                                <span class="font-bold text-rose-400"><span id="dash-food-inv-val">0</span> <span class="currency-label">EGP</span></span>
+                            </div>
+                            <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+                                <div id="dash-bar-food" class="bg-rose-500 h-2.5 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950/60 rounded-xl p-3 border border-slate-800/80 text-xs text-slate-400">
+                        <div class="flex justify-between items-center">
+                            <span>إجمالي الخامات المسجلة بالحصر:</span>
+                            <span id="dash-mat-items-count" class="font-bold text-slate-200">0 أصناف</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activities Table -->
+                <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <h3 class="font-bold text-sm text-slate-200 flex items-center gap-2">
+                            <i class="fa-solid fa-clock-rotate-left text-amber-500"></i> آخر العمليات والفواتير المسجلة
+                        </h3>
+                        <button onclick="switchTab('invoices')" class="text-xs text-amber-500 hover:underline">عرض الكل</button>
+                    </div>
+
+                    <div class="overflow-x-auto mt-3">
+                        <table class="w-full text-right text-xs text-slate-300">
+                            <thead class="bg-slate-950/60 text-slate-400 uppercase">
+                                <tr>
+                                    <th class="p-2.5 rounded-r-lg">التاريخ</th>
+                                    <th class="p-2.5">النوع</th>
+                                    <th class="p-2.5">الوصف / الخامة</th>
+                                    <th class="p-2.5">المبلغ</th>
+                                    <th class="p-2.5 rounded-l-lg">الصورة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dash-recent-table" class="divide-y divide-slate-800">
+                                <tr>
+                                    <td colspan="5" class="text-center py-6 text-slate-500">لا توجد عمليات مسجلة حديثاً في هذا المشروع</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: PROJECTS MANAGEMENT -->
+        <section id="tab-projects" class="tab-content space-y-5 hidden animate-fade-in">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                    <h2 class="text-xl font-extrabold text-white">إدارة المشاريع (Multi-Project)</h2>
+                    <p class="text-xs text-slate-400">أنشئ وادِر قواعد البيانات المنفصلة لكل موقع عمل بشكل كامل</p>
+                </div>
+                <button onclick="openModal('modal-project')" class="bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-amber-500/10">
+                    <i class="fa-solid fa-plus"></i> إضافة مشروع جديد
+                </button>
+            </div>
+
+            <!-- Projects Cards Container -->
+            <div id="projects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Projects generated via JS -->
+            </div>
+        </section>
+
+        <!-- TAB 3: MANPOWER TRACKING -->
+        <section id="tab-manpower" class="tab-content space-y-5 hidden animate-fade-in">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                    <h2 class="text-xl font-extrabold text-white">حصر العمالة اليومية (Manpower)</h2>
+                    <p class="text-xs text-slate-400">متابعة يومية لأعداد الصنايعية والمساعدين وحساب إجماليات الشهر</p>
+                </div>
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <button onclick="copyPreviousDayManpower()" class="bg-slate-800 hover:bg-slate-700 text-amber-500 border border-slate-700 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 flex-1 sm:flex-none justify-center">
+                        <i class="fa-solid fa-copy"></i> نسخ يوم سابق
+                    </button>
+                    <button onclick="openModal('modal-manpower')" class="bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 flex-1 sm:flex-none justify-center">
+                        <i class="fa-solid fa-plus"></i> تسجيل حصر يوم
+                    </button>
+                </div>
+            </div>
+
+            <!-- Month Filter & Monthly Stats -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <label class="text-xs font-bold text-slate-300">اختر الشهر:</label>
+                    <input type="month" id="manpower-month-picker" onchange="renderManpower()" class="bg-slate-950 border border-slate-700 text-amber-500 text-xs font-bold rounded-xl px-3 py-2 focus:outline-none">
+                </div>
+                <div class="flex gap-4 text-xs">
+                    <div class="bg-slate-950 px-3 py-2 rounded-xl border border-slate-800">
+                        <span class="text-slate-400">أيام العمل:</span> <strong id="manpower-days-count" class="text-white font-bold">0</strong>
+                    </div>
+                    <div class="bg-slate-950 px-3 py-2 rounded-xl border border-slate-800">
+                        <span class="text-slate-400">إجمالي صنايعية:</span> <strong id="manpower-total-crafts" class="text-amber-500 font-bold">0</strong>
+                    </div>
+                    <div class="bg-slate-950 px-3 py-2 rounded-xl border border-slate-800">
+                        <span class="text-slate-400">إجمالي مساعدين:</span> <strong id="manpower-total-helps" class="text-blue-400 font-bold">0</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manpower Table -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-xs text-slate-300">
+                        <thead class="bg-slate-950 text-slate-400 uppercase">
+                            <tr>
+                                <th class="p-3">التاريخ</th>
+                                <th class="p-3">عدد الصنايعية</th>
+                                <th class="p-3">عدد المساعدين</th>
+                                <th class="p-3">إجمالي اليوم</th>
+                                <th class="p-3">ملاحظات</th>
+                                <th class="p-3 text-center">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="manpower-table-body" class="divide-y divide-slate-800">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: MATERIALS TRACKING -->
+        <section id="tab-materials" class="tab-content space-y-5 hidden animate-fade-in">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                    <h2 class="text-xl font-extrabold text-white">حصر وتتبع الخامات (Material Tracking)</h2>
+                    <p class="text-xs text-slate-400">تسجيل ومتابعة توريدات واستخدامات الخامات الكهربائية بالموقع</p>
+                </div>
+                <button onclick="openModal('modal-material')" class="bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> إضافة خامة جديدة
+                </button>
+            </div>
+
+            <!-- Filters -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <input type="text" id="mat-search-input" oninput="renderMaterials()" placeholder="بحث باسم الخامة أو المورد..." class="bg-slate-950 border border-slate-700 text-xs rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-500">
+                
+                <select id="mat-category-filter" onchange="renderMaterials()" class="bg-slate-950 border border-slate-700 text-xs rounded-xl px-3 py-2 text-slate-200 focus:outline-none">
+                    <option value="all">جميع التصنيفات</option>
+                    <option value="كابلات وموصلات">كابلات وموصلات</option>
+                    <option value="مواسير ومجاري خرسانية">مواسير ومجاري</option>
+                    <option value="لوحات وقواطع">لوحات وقواطع</option>
+                    <option value="إنارة وكشافات">إنارة وكشافات</option>
+                    <option value="تيار خفيف وأنظمة">تيار خفيف وأنظمة</option>
+                    <option value="تأريض وصواعق">تأريض وصواعق</option>
+                    <option value="أخرى">أخرى</option>
+                </select>
+
+                <div class="flex items-center gap-2 justify-end text-xs text-slate-400">
+                    <span>إجمالي الأصناف:</span>
+                    <strong id="mat-count-badge" class="text-amber-500 font-bold text-sm">0</strong>
+                </div>
+            </div>
+
+            <!-- Materials Grid Card View -->
+            <div id="materials-cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Rendered dynamically -->
+            </div>
+        </section>
+
+        <!-- TAB 5: INVOICES & EXPENSES -->
+        <section id="tab-invoices" class="tab-content space-y-5 hidden animate-fade-in">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                    <h2 class="text-xl font-extrabold text-white">الفواتير والمصروفات اليومية</h2>
+                    <p class="text-xs text-slate-400">إدارة فواتير الانتقالات والوجبات وشراء الخامات مع توثيق الصور</p>
+                </div>
+                <button onclick="openModal('modal-invoice')" class="bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-receipt"></i> تسجيل فاتورة جديدة
+                </button>
+            </div>
+
+            <!-- Category Tabs Buttons -->
+            <div class="flex bg-slate-950 p-1.5 rounded-2xl border border-slate-800 gap-1 overflow-x-auto">
+                <button onclick="switchInvoiceSubTab('all')" class="inv-subtab font-bold text-xs px-4 py-2 rounded-xl text-slate-300 hover:text-amber-500 transition active-inv-tab" data-subtab="all">الكل</button>
+                <button onclick="switchInvoiceSubTab('uber')" class="inv-subtab font-bold text-xs px-4 py-2 rounded-xl text-slate-300 hover:text-amber-500 transition" data-subtab="uber"><i class="fa-solid fa-car text-emerald-400 mr-1"></i> فواتير أوبر/مواصلات</button>
+                <button onclick="switchInvoiceSubTab('food')" class="inv-subtab font-bold text-xs px-4 py-2 rounded-xl text-slate-300 hover:text-amber-500 transition" data-subtab="food"><i class="fa-solid fa-utensils text-rose-400 mr-1"></i> فواتير الأكل والوجبات</button>
+                <button onclick="switchInvoiceSubTab('materials')" class="inv-subtab font-bold text-xs px-4 py-2 rounded-xl text-slate-300 hover:text-amber-500 transition" data-subtab="materials"><i class="fa-solid fa-boxes-stacked text-amber-400 mr-1"></i> فواتير الخامات</button>
+            </div>
+
+            <!-- Invoices List Container -->
+            <div id="invoices-list-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Rendered dynamically -->
+            </div>
+        </section>
+
+        <!-- TAB 6: INVOICE ARCHIVE -->
+        <section id="tab-archive" class="tab-content space-y-5 hidden animate-fade-in">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                    <h2 class="text-xl font-extrabold text-white">أرشيف الصور والفواتير المركزي</h2>
+                    <p class="text-xs text-slate-400">عرض بصري شامل لجميع الفواتير والمرفقات المصورة مع إمكانية البحث المتقدم</p>
+                </div>
+            </div>
+
+            <!-- Archive Search Toolbar -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <input type="text" id="archive-search" oninput="renderArchive()" placeholder="بحث باسم المورد أو رقم الفاتورة أو الملاحظات..." class="bg-slate-950 border border-slate-700 text-xs rounded-xl px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-500">
+                <select id="archive-filter-type" onchange="renderArchive()" class="bg-slate-950 border border-slate-700 text-xs rounded-xl px-3 py-2 text-slate-200 focus:outline-none">
+                    <option value="all">كل أنواع الفواتير</option>
+                    <option value="uber">أوبر والمواصلات</option>
+                    <option value="food">الأكل والوجبات</option>
+                    <option value="materials">فواتير الخامات</option>
+                </select>
+                <select id="archive-sort" onchange="renderArchive()" class="bg-slate-950 border border-slate-700 text-xs rounded-xl px-3 py-2 text-slate-200 focus:outline-none">
+                    <option value="desc">من الأحدث للأقدم</option>
+                    <option value="asc">من الأقدم للأحدث</option>
+                </select>
+            </div>
+
+            <!-- Gallery Grid -->
+            <div id="archive-gallery-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                <!-- Rendered dynamically -->
+            </div>
+        </section>
+
+        <!-- TAB 7: DAILY SITE REPORT -->
+        <section id="tab-daily-report" class="tab-content space-y-5 hidden animate-fade-in">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                    <h2 class="text-xl font-extrabold text-white">تقرير يومية الموقع الرسمية (Daily Report)</h2>
+                    <p class="text-xs text-slate-400">توثيق شامل للأعمال المنفذة، الخامات، العمالة والتحديات اليومية</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="saveDailyReport()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-emerald-600/20">
+                        <i class="fa-solid fa-floppy-disk"></i> حفظ التقرير
+                    </button>
+                    <button onclick="exportDailyReportPDF()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-pdf"></i> طباعة / PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Form Card -->
+            <div id="daily-report-printable-area" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 space-y-6">
+                <!-- Report Header & Info -->
+                <div class="border-b border-slate-800 pb-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">تاريخ التقرير:</label>
+                        <input type="date" id="dr-date" onchange="loadDailyReportForDate(this.value)" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-400 font-bold focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">حالة الطقس بالموقع:</label>
+                        <input type="text" id="dr-weather" placeholder="مثال: مشمس 32°م - رياح خفيفة" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">نسبة الإنجاز المستهدفة/الفعلية:</label>
+                        <input type="text" id="dr-progress-percent" placeholder="مثال: 75%" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200">
+                    </div>
+                </div>
+
+                <!-- Manpower Breakdown Section -->
+                <div>
+                    <h3 class="font-bold text-sm text-amber-500 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-users"></i> أولاً: حصر العمالة وتوزيع التخصصات اليومية
+                    </h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-950 p-3.5 rounded-xl border border-slate-800/80">
+                        <div>
+                            <label class="text-[11px] text-slate-400 block">فني كهربائي:</label>
+                            <input type="number" id="dr-tech-elec" value="0" min="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-center font-bold text-white">
+                        </div>
+                        <div>
+                            <label class="text-[11px] text-slate-400 block">فني كابلات:</label>
+                            <input type="number" id="dr-tech-cables" value="0" min="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-center font-bold text-white">
+                        </div>
+                        <div>
+                            <label class="text-[11px] text-slate-400 block">فني تيار خفيف:</label>
+                            <input type="number" id="dr-tech-lc" value="0" min="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-center font-bold text-white">
+                        </div>
+                        <div>
+                            <label class="text-[11px] text-slate-400 block">مساعدين وعمالة:</label>
+                            <input type="number" id="dr-tech-helpers" value="0" min="0" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-center font-bold text-white">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Executed Works Dynamic List -->
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="font-bold text-sm text-amber-500 flex items-center gap-2">
+                            <i class="fa-solid fa-screwdriver-wrench"></i> ثانياً: بنود الأعمال المنفذة خلال اليوم
+                        </h3>
+                        <button onclick="addDailyReportWorkItem()" class="text-xs bg-slate-800 hover:bg-slate-700 text-amber-500 border border-slate-700 px-3 py-1 rounded-lg">
+                            + إضافة بند عمل
+                        </button>
+                    </div>
+                    <div id="dr-works-container" class="space-y-2">
+                        <!-- Dynamic Work Items Container -->
+                    </div>
+                </div>
+
+                <!-- Materials & Equipment Section -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <h3 class="font-bold text-sm text-amber-500 mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-box-open"></i> ثالثاً: الخامات المستهلكة باليومية
+                        </h3>
+                        <textarea id="dr-materials-used" rows="3" placeholder="اكتب الخامات المستخدمة الكمية المكان..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-slate-200 focus:outline-none"></textarea>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm text-amber-500 mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-truck-monster"></i> رابعاً: المعدات والأدوات المستخدمة
+                        </h3>
+                        <textarea id="dr-equipment-used" rows="3" placeholder="معدات الحفر، السقالات، أجهزة الفحص والقياس..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-slate-200 focus:outline-none"></textarea>
+                    </div>
+                </div>
+
+                <!-- Obstacles & Notes -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <h3 class="font-bold text-sm text-rose-400 mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-triangle-exclamation"></i> خامساً: معوقات العمل والمشاريع
+                        </h3>
+                        <textarea id="dr-obstacles" rows="3" placeholder="المعوقات، الإجراء المتخذ، وحالة المعوق..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-slate-200 focus:outline-none"></textarea>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm text-emerald-400 mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-day"></i> سادساً: خطة العمل للغد والاعتمادات
+                        </h3>
+                        <textarea id="dr-next-plan" rows="3" placeholder="الأعمال المخططة لليوم التالي والأعمال المنتظرة للاعتماد..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-slate-200 focus:outline-none"></textarea>
+                    </div>
+                </div>
+
+                <!-- Photos Attachments -->
+                <div>
+                    <h3 class="font-bold text-sm text-amber-500 mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-camera"></i> سابعاً: التوثيق المصور للموقع (Site Photos)
+                    </h3>
+                    <div class="flex flex-wrap items-center gap-2 mb-3">
+                        <!-- Camera capture button -->
+                        <label class="bg-amber-500 hover:bg-amber-600 text-slate-950 px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1.5 shadow-md">
+                            <i class="fa-solid fa-camera"></i> التقط صورة
+                            <input type="file" accept="image/*" capture="environment" onchange="handleDailyReportPhotos(event)" class="hidden">
+                        </label>
+                        <!-- Gallery selection button -->
+                        <label class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 px-3 py-1.5 rounded-xl text-xs cursor-pointer flex items-center gap-1.5">
+                            <i class="fa-solid fa-images text-amber-500"></i> اختر من المعرض
+                            <input type="file" accept="image/*" multiple onchange="handleDailyReportPhotos(event)" class="hidden">
+                        </label>
+                        <span class="text-xs text-slate-500">تستطيع إرفاق صور متعددة</span>
+                    </div>
+                    <div id="dr-photos-preview" class="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                        <!-- Preview Images -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 8: REPORTS EXPORT PDF -->
+        <section id="tab-reports" class="tab-content space-y-5 hidden animate-fade-in">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                    <h2 class="text-xl font-extrabold text-white">مركز إصدار وتصدير التقارير (PDF Reports)</h2>
+                    <p class="text-xs text-slate-400">توليد تقارير رسمية منسقة للعمالة والمصروفات باللغة العربية جاهزة للطباعة</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-5 max-w-2xl mx-auto">
+                <div>
+                    <label class="text-xs font-bold text-slate-300 block mb-2">نوع التقرير المطلوب:</label>
+                    <select id="report-type" class="w-full bg-slate-950 border border-slate-700 text-slate-100 rounded-xl p-3 text-xs font-bold focus:outline-none focus:border-amber-500">
+                        <option value="daily_report">تقرير يومية الموقع (Daily Report)</option>
+                        <option value="manpower">تقرير حصر العمالة الشهري</option>
+                        <option value="materials">تقرير حصر الخامات والمخزون</option>
+                        <option value="invoices_all">تقرير المصروفات الإجمالي (جميع الفواتير)</option>
+                        <option value="invoices_uber">تقرير فواتير الانتقالات وأوبر</option>
+                        <option value="invoices_food">تقرير فواتير الوجبات والأغذية</option>
+                        <option value="invoices_mat">تقرير فواتير الخامات المشترات</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">من تاريخ:</label>
+                        <input type="date" id="report-start-date" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">إلى تاريخ:</label>
+                        <input type="date" id="report-end-date" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200">
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="report-include-images" checked class="w-4 h-4 rounded text-amber-500 bg-slate-950 border-slate-700">
+                    <label for="report-include-images" class="text-xs text-slate-300">تضمين صور الفواتير والمستندات داخل ملف PDF</label>
+                </div>
+
+                <button onclick="generateCustomPDFReport()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold py-3 rounded-xl text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20">
+                    <i class="fa-solid fa-file-export text-lg"></i> إنشاء وتصدير التقرير الآن (PDF)
+                </button>
+            </div>
+        </section>
+
+        <!-- TAB 9: BACKUP & RESTORE -->
+        <section id="tab-backup" class="tab-content space-y-5 hidden animate-fade-in">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                    <h2 class="text-xl font-extrabold text-white">النسخ الاحتياطي ونقل البيانات (Backup & Restore)</h2>
+                    <p class="text-xs text-slate-400">حفظ واسترجاع ملفات قاعدة البيانات محلياً بدون إنترنت بأمان تام</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <!-- Export Card -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+                    <div class="flex items-center gap-3 border-b border-slate-800 pb-3">
+                        <span class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-lg"><i class="fa-solid fa-download"></i></span>
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-200">تصدير نسخة احتياطية (Export JSON)</h3>
+                            <p class="text-xs text-slate-400">تحميل كافة بيانات المشاريع والعمالة والفواتير والصور</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        يتم إنشاء ملف كامل بصيغة JSON يحتوي على كافة سجلات الصور المخزنة في IndexedDB. يمكنك حفظه على هاتفك أو جهاز الكمبيوتر.
+                    </p>
+                    <div class="space-y-2">
+                        <button onclick="exportDatabaseJSON(false)" class="w-full bg-slate-800 hover:bg-slate-700 text-amber-500 border border-slate-700 font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-file-code"></i> تصدير بيانات المشروع الحالي فقط
+                        </button>
+                        <button onclick="exportDatabaseJSON(true)" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10">
+                            <i class="fa-solid fa-database"></i> تصدير شامل لجميع المشاريع والبيانات
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Import Card -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+                    <div class="flex items-center gap-3 border-b border-slate-800 pb-3">
+                        <span class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg"><i class="fa-solid fa-upload"></i></span>
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-200">استعادة نسخة احتياطية (Restore JSON)</h3>
+                            <p class="text-xs text-slate-400">رفع ملف البيانات المحفوظ سابقاً لإعادته للتطبيق</p>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        اختر ملف النسخة الاحتياطية من جهازك. تنبيه: سيتم دمج أو استبدال البيانات الحالية بالبيانات الموجودة بالملف.
+                    </p>
+                    <label class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 rounded-xl text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-600/10">
+                        <i class="fa-solid fa-file-import"></i> اختيار ملف النسخة الاحتياطية (.JSON)
+                        <input type="file" id="import-json-file" accept=".json" onchange="importDatabaseJSON(event)" class="hidden">
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 10: SETTINGS -->
+        <section id="tab-settings" class="tab-content space-y-5 hidden animate-fade-in">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                    <h2 class="text-xl font-extrabold text-white">إعدادات التطبيق والنظام</h2>
+                    <p class="text-xs text-slate-400">تخصيص الهوية، العملة، وتفضيلات مهندس الموقع</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 max-w-2xl mx-auto space-y-5">
+                <div>
+                    <label class="text-xs font-bold text-slate-300 block mb-1.5">اسم المهندس المسؤول:</label>
+                    <input type="text" id="setting-engineer-name" class="w-full bg-slate-950 border border-slate-700 text-slate-100 rounded-xl p-3 text-xs focus:outline-none focus:border-amber-500">
+                </div>
+
+                <div>
+                    <label class="text-xs font-bold text-slate-300 block mb-1.5">العملة الافتراضية للفواتير:</label>
+                    <input type="text" id="setting-currency" value="EGP" class="w-full bg-slate-950 border border-slate-700 text-slate-100 rounded-xl p-3 text-xs focus:outline-none focus:border-amber-500">
+                </div>
+
+                <div class="flex justify-between items-center border-t border-slate-800 pt-4">
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-200">البيانات الإرشادية الأولية (Demo Seed Data)</h4>
+                        <p class="text-[11px] text-slate-400">إضافة مشروع تجريبي مع فواتير وعمالة للاختبار المعاين</p>
+                    </div>
+                    <button onclick="seedDemoData()" class="bg-slate-800 hover:bg-slate-700 text-amber-500 border border-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold">
+                        تعبئة بيانات تجريبية
+                    </button>
+                </div>
+
+                <button onclick="saveAppSettings()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold py-3 rounded-xl text-sm transition">
+                    حفظ التغييرات
+                </button>
+
+                <div class="border-t border-slate-800 pt-4">
+                    <button onclick="resetAllDataDataConfirm()" class="w-full bg-rose-600/10 border border-rose-500/30 text-rose-500 hover:bg-rose-600 hover:text-white font-bold py-2.5 rounded-xl text-xs transition">
+                        <i class="fa-solid fa-trash mr-1"></i> مسح جميع بيانات التطبيق وقاعدة البيانات بالكامل
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar for Mobile -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur-lg border-t border-slate-800 z-30 px-2 py-1.5 flex justify-around items-center no-print">
+        <button onclick="switchTab('dashboard')" class="mobile-nav-btn flex flex-col items-center gap-1 text-slate-400 active-mobile-tab" data-tab="dashboard">
+            <i class="fa-solid fa-chart-pie text-lg"></i>
+            <span class="text-[10px] font-bold">الرئيسية</span>
+        </button>
+        <button onclick="switchTab('manpower')" class="mobile-nav-btn flex flex-col items-center gap-1 text-slate-400" data-tab="manpower">
+            <i class="fa-solid fa-users-gear text-lg"></i>
+            <span class="text-[10px] font-bold">العمالة</span>
+        </button>
+        <button onclick="openModal('quick-add-modal')" class="w-11 h-11 bg-amber-500 text-slate-950 rounded-2xl flex items-center justify-center -mt-5 shadow-lg shadow-amber-500/30 font-bold active:scale-90 transition">
+            <i class="fa-solid fa-plus text-xl"></i>
+        </button>
+        <button onclick="switchTab('invoices')" class="mobile-nav-btn flex flex-col items-center gap-1 text-slate-400" data-tab="invoices">
+            <i class="fa-solid fa-file-invoice-dollar text-lg"></i>
+            <span class="text-[10px] font-bold">الفواتير</span>
+        </button>
+        <button onclick="switchTab('daily-report')" class="mobile-nav-btn flex flex-col items-center gap-1 text-slate-400" data-tab="daily-report">
+            <i class="fa-solid fa-clipboard-list text-lg"></i>
+            <span class="text-[10px] font-bold">اليومية</span>
+        </button>
+    </nav>
+
+    <!-- ==================== MODALS SECTION ==================== -->
+
+    <!-- Quick Add Selector Modal -->
+    <div id="quick-add-modal" class="modal fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 max-w-sm w-full space-y-4 animate-fade-in text-center">
+            <h3 class="font-bold text-slate-100 text-base border-b border-slate-800 pb-3">إضافة سريع للمشروع</h3>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="closeModal('quick-add-modal'); openModal('modal-manpower')" class="p-4 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl flex flex-col items-center gap-2">
+                    <i class="fa-solid fa-users text-amber-500 text-2xl"></i>
+                    <span class="text-xs font-bold text-slate-200">حصر عمالة</span>
+                </button>
+                <button onclick="closeModal('quick-add-modal'); openModal('modal-invoice')" class="p-4 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl flex flex-col items-center gap-2">
+                    <i class="fa-solid fa-receipt text-emerald-400 text-2xl"></i>
+                    <span class="text-xs font-bold text-slate-200">تسجيل فاتورة</span>
+                </button>
+                <button onclick="closeModal('quick-add-modal'); openModal('modal-material')" class="p-4 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl flex flex-col items-center gap-2">
+                    <i class="fa-solid fa-boxes-stacked text-blue-400 text-2xl"></i>
+                    <span class="text-xs font-bold text-slate-200">إضافة خامة</span>
+                </button>
+                <button onclick="closeModal('quick-add-modal'); switchTab('daily-report');" class="p-4 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl flex flex-col items-center gap-2">
+                    <i class="fa-solid fa-clipboard-list text-purple-400 text-2xl"></i>
+                    <span class="text-xs font-bold text-slate-200">يومية الموقع</span>
+                </button>
+            </div>
+            <button onclick="closeModal('quick-add-modal')" class="w-full py-2 bg-slate-800 text-slate-400 rounded-xl text-xs font-bold">إلغاء</button>
+        </div>
+    </div>
+
+    <!-- Modal Project Add/Edit -->
+    <div id="modal-project" class="modal fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 max-w-md w-full space-y-4 animate-fade-in">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 id="modal-project-title" class="font-extrabold text-white text-base">إضافة مشروع موقع جديد</h3>
+                <button onclick="closeModal('modal-project')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="form-project" onsubmit="handleSaveProject(event)" class="space-y-3">
+                <input type="hidden" id="project-id">
+                <div>
+                    <label class="text-xs font-bold text-slate-300 block mb-1">اسم المشروع / الموقع:*</label>
+                    <input type="text" id="proj-name" required placeholder="مثال: مشروع مجمع العاصمة الكابلات" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-amber-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">كود المشروع:</label>
+                        <input type="text" id="proj-code" placeholder="PRJ-01" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">الموقع / المدينة:</label>
+                        <input type="text" id="proj-location" placeholder="القاهرة الجديدة" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">العميل:</label>
+                        <input type="text" id="proj-client" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">الاستشاري:</label>
+                        <input type="text" id="proj-consultant" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 pt-3">
+                    <button type="button" onclick="closeModal('modal-project')" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold">إلغاء</button>
+                    <button type="submit" class="px-5 py-2 bg-amber-500 text-slate-950 font-extrabold rounded-xl text-xs">حفظ المشروع</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Manpower Entry -->
+    <div id="modal-manpower" class="modal fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 max-w-md w-full space-y-4 animate-fade-in">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="font-extrabold text-white text-base">تسجيل حصر العمالة اليومية</h3>
+                <button onclick="closeModal('modal-manpower')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="form-manpower" onsubmit="handleSaveManpower(event)" class="space-y-3">
+                <input type="hidden" id="manpower-id">
+                <div>
+                    <label class="text-xs font-bold text-slate-300 block mb-1">تاريخ الحصر:*</label>
+                    <input type="date" id="manpower-date" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-amber-400 font-bold">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs font-bold text-slate-300 block mb-1">عدد الصنايعية:*</label>
+                        <input type="number" id="manpower-craftsmen" required min="0" value="0" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white font-bold text-center">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-300 block mb-1">عدد المساعدين:*</label>
+                        <input type="number" id="manpower-helpers" required min="0" value="0" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white font-bold text-center">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">ملاحظات حصر العمالة:</label>
+                    <textarea id="manpower-notes" rows="2" placeholder="ملاحظات الأعمال المسندة للعمالة اليوم..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></textarea>
+                </div>
+                <div class="flex justify-end gap-2 pt-3">
+                    <button type="button" onclick="closeModal('modal-manpower')" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold">إلغاء</button>
+                    <button type="submit" class="px-5 py-2 bg-amber-500 text-slate-950 font-extrabold rounded-xl text-xs">حفظ السجل</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Material Entry -->
+    <div id="modal-material" class="modal fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 max-w-md w-full space-y-4 animate-fade-in max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="font-extrabold text-white text-base">إضافة / تعديل خامة</h3>
+                <button onclick="closeModal('modal-material')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="form-material" onsubmit="handleSaveMaterial(event)" class="space-y-3">
+                <input type="hidden" id="material-id">
+                <div>
+                    <label class="text-xs font-bold text-slate-300 block mb-1">اسم الخامة:*</label>
+                    <input type="text" id="mat-name" required placeholder="مثال: أسلاك سويدي 4 مم²" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs font-bold text-slate-300 block mb-1">التصنيف:</label>
+                        <select id="mat-category" class="w-full bg-slate-950 border border-slate-700 text-xs rounded-xl p-2.5 text-white">
+                            <option value="كابلات وموصلات">كابلات وموصلات</option>
+                            <option value="مواسير ومجاري خرسانية">مواسير ومجاري</option>
+                            <option value="لوحات وقواطع">لوحات وقواطع</option>
+                            <option value="إنارة وكشافات">إنارة وكشافات</option>
+                            <option value="تيار خفيف وأنظمة">تيار خفيف وأنظمة</option>
+                            <option value="تأريض وصواعق">تأريض وصواعق</option>
+                            <option value="أخرى">أخرى</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-300 block mb-1">وحدة القياس:</label>
+                        <select id="mat-unit" class="w-full bg-slate-950 border border-slate-700 text-xs rounded-xl p-2.5 text-white">
+                            <option value="متر">متر (m)</option>
+                            <option value="لفة">لفة (Roll)</option>
+                            <option value="قطعة">قطعة (Pcs)</option>
+                            <option value="علبة">علبة (Box)</option>
+                            <option value="طقم">طقم (Set)</option>
+                            <option value="كجم">كجم (Kg)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs font-bold text-slate-300 block mb-1">الكمية:*</label>
+                        <input type="number" step="0.1" id="mat-qty" required value="1" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white font-bold">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">التاريخ:</label>
+                        <input type="date" id="mat-date" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">المورد / الشركة:</label>
+                    <input type="text" id="mat-supplier" placeholder="اسم الشركة الموردة..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">صورة الخامة (كاميرا أو معرض):</label>
+                    <div class="flex gap-2">
+                        <label class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 p-2 rounded-xl text-xs font-bold text-center cursor-pointer">
+                            <i class="fa-solid fa-camera ml-1"></i> كاميرا
+                            <input type="file" accept="image/*" capture="environment" onchange="handleMaterialPhotoInput(event)" class="hidden">
+                        </label>
+                        <label class="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 p-2 rounded-xl text-xs font-bold text-center cursor-pointer">
+                            <i class="fa-solid fa-images text-amber-500 ml-1"></i> الاستوديو / المعرض
+                            <input type="file" accept="image/*" onchange="handleMaterialPhotoInput(event)" class="hidden">
+                        </label>
+                    </div>
+                    <div id="mat-photo-preview" class="mt-2 h-20 bg-slate-950 rounded-xl overflow-hidden border border-slate-800 hidden relative">
+                        <img id="mat-photo-img" src="" class="w-full h-full object-cover">
+                        <button type="button" onclick="clearMaterialPhoto()" class="absolute top-1 right-1 bg-rose-600 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 pt-3">
+                    <button type="button" onclick="closeModal('modal-material')" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold">إلغاء</button>
+                    <button type="submit" class="px-5 py-2 bg-amber-500 text-slate-950 font-extrabold rounded-xl text-xs">حفظ الخامة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Invoice Entry -->
+    <div id="modal-invoice" class="modal fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 max-w-md w-full space-y-4 animate-fade-in max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="font-extrabold text-white text-base">تسجيل فاتورة جديدة</h3>
+                <button onclick="closeModal('modal-invoice')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="form-invoice" onsubmit="handleSaveInvoice(event)" class="space-y-3">
+                <input type="hidden" id="invoice-id">
+                
+                <div>
+                    <label class="text-xs font-bold text-slate-300 block mb-1">نوع الفاتورة:*</label>
+                    <select id="inv-type" required onchange="toggleInvoiceFields()" class="w-full bg-slate-950 border border-slate-700 text-xs font-bold rounded-xl p-2.5 text-amber-500">
+                        <option value="uber">فواتير أوبر والمواصلات</option>
+                        <option value="food">فواتير الأكل والوجبات</option>
+                        <option value="materials">فواتير شراء الخامات</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs font-bold text-slate-300 block mb-1">المبلغ (EGP):*</label>
+                        <input type="number" step="0.5" id="inv-amount" required placeholder="0.00" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white font-extrabold">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-slate-300 block mb-1">التاريخ:*</label>
+                        <input type="date" id="inv-date" required class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-amber-400 font-bold">
+                    </div>
+                </div>
+
+                <!-- Dynamic Fields based on Type -->
+                <div id="inv-field-uber" class="space-y-2">
+                    <div class="grid grid-cols-2 gap-3">
+                        <input type="text" id="inv-start-point" placeholder="نقطة الانطلاق (من)" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200">
+                        <input type="text" id="inv-end-point" placeholder="الوجهة (إلى)" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200">
+                    </div>
+                </div>
+
+                <div id="inv-field-supplier" class="space-y-2 hidden">
+                    <input type="text" id="inv-supplier-name" placeholder="اسم المطعم / المورد / الشركة" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200">
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">ملاحظات / وصف الفاتورة:</label>
+                    <textarea id="inv-notes" rows="2" placeholder="وصف الفاتورة والغرض منها..." class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-white"></textarea>
+                </div>
+
+                <!-- Photos Handler with Independent Camera / Gallery Buttons -->
+                <div class="border-t border-slate-800 pt-3">
+                    <label class="text-xs font-bold text-slate-300 block mb-2">إرفاق صور الفاتورة (كاميرا أو معرض الصور):</label>
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <!-- Camera Capture Button -->
+                        <label class="bg-amber-500 hover:bg-amber-600 text-slate-950 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-md">
+                            <i class="fa-solid fa-camera text-sm"></i> تصوير بالكاميرا
+                            <input type="file" accept="image/*" capture="environment" onchange="handleInvoicePhotoUpload(event)" class="hidden">
+                        </label>
+                        <!-- Gallery / Studio Selection Button -->
+                        <label class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer">
+                            <i class="fa-solid fa-images text-amber-500 text-sm"></i> فتح الاستوديو (المعرض)
+                            <input type="file" accept="image/*" multiple onchange="handleInvoicePhotoUpload(event)" class="hidden">
+                        </label>
+                    </div>
+
+                    <!-- Images Preview Grid -->
+                    <div id="inv-photos-preview-grid" class="grid grid-cols-4 gap-2">
+                        <!-- Thumbnails injected here -->
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-2 pt-3">
+                    <button type="button" onclick="closeModal('modal-invoice')" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold">إلغاء</button>
+                    <button type="submit" class="px-5 py-2 bg-amber-500 text-slate-950 font-extrabold rounded-xl text-xs">حفظ الفاتورة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Full Image Lightbox Modal -->
+    <div id="modal-lightbox" class="modal fixed inset-0 z-50 hidden bg-slate-950/95 backdrop-blur-md flex flex-col justify-between p-4 no-print">
+        <div class="flex justify-between items-center text-white z-10">
+            <span id="lightbox-caption" class="text-xs font-bold">عرض الصورة</span>
+            <div class="flex items-center gap-3">
+                <a id="lightbox-download-link" download="invoice.jpg" href="#" class="text-amber-500 text-lg hover:text-amber-400"><i class="fa-solid fa-download"></i></a>
+                <button onclick="closeModal('modal-lightbox')" class="text-slate-400 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </div>
+        <div class="flex-1 flex items-center justify-center p-2 overflow-auto">
+            <img id="lightbox-img" src="" alt="Full view" class="max-h-full max-w-full object-contain rounded-lg shadow-2xl transition-transform duration-200">
+        </div>
+    </div>
+
+    <!-- PROJECT PROGRESS MODAL -->
+    <div id="modal-project-progress" class="modal fixed inset-0 z-50 hidden bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 max-w-2xl w-full space-y-4 animate-fade-in max-h-[85vh] overflow-y-auto text-xs leading-relaxed">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="font-extrabold text-amber-500 text-sm">عن تطبيق Site Master Electrical</h3>
+                <button onclick="closeModal('modal-project-progress')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="space-y-3 text-slate-300">
+                <p><strong class="text-white">حالة التطبيق:</strong> مكتمل جاهز للتشغيل الفعلي والتخزين المحلي 100% بدون إنترنت (PWA Offline Ready).</p>
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
+                    <h4 class="font-bold text-amber-400 mb-1">المحطات التقنية المنفذة:</h4>
+                    <ul class="list-disc list-inside space-y-1 text-slate-400">
+                        <li>IndexedDB Engine متكامل لتخزين البيانات والصور (Base64/Blobs).</li>
+                        <li>تفعيل Persistent Storage لمنع المتصفح من مسح قاعدة البيانات تلقائياً.</li>
+                        <li>دعم الكاميرا والاستوديو معاً لرفع الفواتير والصور بسهولة.</li>
+                        <li>Multi-Project Architecture بفلترة تلقائية لكافة الجداول بقيمة `projectId`.</li>
+                        <li>Daily Site Report مع تصدير PDF عربي بأسلوب هندسي دقيق.</li>
+                        <li>PWA Install Handler للعمل كتطبيق موبايل مستقل.</li>
+                        <li>تصدير واستعادة نسخ JSON كاملة للبيانات والصور.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== JAVASCRIPT APP ENGINE ==================== -->
+    <script>
+        /* ==================== GLOBAL APP STATE & INDEXEDDB ==================== */
+        let db = null;
+        const DB_NAME = 'SiteMasterElectricalDB';
+        const DB_VERSION = 1;
+
+        let appState = {
+            activeProjectId: null,
+            engineerName: 'مهندس الكهرباء',
+            currency: 'EGP',
+            invoicesSubTab: 'all',
+            tempInvoiceImages: [],
+            tempDailyReportImages: [],
+            tempMaterialImage: null
+        };
+
+        // Initialize IndexedDB with Storage Persistence Request
+        async function initDB() {
+            // Request persistent storage from browser
+            if (navigator.storage && navigator.storage.persist) {
+                const isPersisted = await navigator.storage.persist();
+                console.log(`Persistent Storage status: ${isPersisted ? 'granted' : 'not granted'}`);
+                if (isPersisted) {
+                    const badge = document.getElementById('storage-status-badge');
+                    if (badge) badge.classList.remove('hidden');
+                }
+            }
+
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    // Projects
+                    if (!db.objectStoreNames.contains('projects')) {
+                        db.createObjectStore('projects', { keyPath: 'id' });
+                    }
+                    // Manpower
+                    if (!db.objectStoreNames.contains('manpower')) {
+                        const mpStore = db.createObjectStore('manpower', { keyPath: 'id' });
+                        mpStore.createIndex('projectId', 'projectId', { unique: false });
+                    }
+                    // Materials
+                    if (!db.objectStoreNames.contains('materials')) {
+                        const matStore = db.createObjectStore('materials', { keyPath: 'id' });
+                        matStore.createIndex('projectId', 'projectId', { unique: false });
+                    }
+                    // Invoices
+                    if (!db.objectStoreNames.contains('invoices')) {
+                        const invStore = db.createObjectStore('invoices', { keyPath: 'id' });
+                        invStore.createIndex('projectId', 'projectId', { unique: false });
+                    }
+                    // Daily Site Reports
+                    if (!db.objectStoreNames.contains('dailyReports')) {
+                        const drStore = db.createObjectStore('dailyReports', { keyPath: 'id' });
+                        drStore.createIndex('projectId', 'projectId', { unique: false });
+                    }
+                    // App Settings
+                    if (!db.objectStoreNames.contains('settings')) {
+                        db.createObjectStore('settings', { keyPath: 'key' });
+                    }
+                };
+
+                request.onsuccess = (event) => {
+                    db = event.target.result;
+                    resolve(db);
+                };
+
+                request.onerror = (event) => {
+                    console.error("IndexedDB initialization error", event);
+                    reject(event);
+                };
+            });
+        }
+
+        /* Generic IndexedDB CRUD Operations */
+        function dbSave(storeName, data) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readwrite');
+                const store = tx.objectStore(storeName);
+                const req = store.put(data);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        function dbGetAll(storeName) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readonly');
+                const store = tx.objectStore(storeName);
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        function dbGetByProject(storeName, projectId) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readonly');
+                const store = tx.objectStore(storeName);
+                const index = store.index('projectId');
+                const req = index.getAll(projectId);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        function dbDelete(storeName, id) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readwrite');
+                const store = tx.objectStore(storeName);
+                const req = store.delete(id);
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+            });
+        }
+
+        /* ==================== APP INITIALIZATION ==================== */
+        window.addEventListener('DOMContentLoaded', async () => {
+            await initDB();
+            await loadSettings();
+            await ensureDefaultProject();
+            registerServiceWorker();
+            setupPWA();
+            setupUIListeners();
+            switchTab('dashboard');
+        });
+
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                const swCode = `
+                    const CACHE_NAME = 'site-master-v3';
+                    self.addEventListener('install', (e) => {
+                        self.skipWaiting();
+                    });
+                    self.addEventListener('activate', (e) => {
+                        e.waitUntil(clients.claim());
+                    });
+                    self.addEventListener('fetch', (e) => {
+                        e.respondWith(
+                            fetch(e.request).catch(() => caches.match(e.request))
+                        );
+                    });
+                `;
+                const blob = new Blob([swCode], { type: 'text/javascript' });
+                const blobUrl = URL.createObjectURL(blob);
+                navigator.serviceWorker.register(blobUrl).catch(err => console.log('SW registration note:', err));
+            }
+        }
+
+        async function loadSettings() {
+            try {
+                const settings = await dbGetAll('settings');
+                settings.forEach(s => {
+                    if (s.key === 'engineerName') appState.engineerName = s.value;
+                    if (s.key === 'currency') appState.currency = s.value;
+                    if (s.key === 'activeProjectId') appState.activeProjectId = s.value;
+                });
+                document.getElementById('setting-engineer-name').value = appState.engineerName;
+                document.getElementById('setting-currency').value = appState.currency;
+                document.getElementById('dash-engineer-name').textContent = appState.engineerName;
+                
+                // Set Currencies
+                document.querySelectorAll('.currency-label').forEach(el => el.textContent = appState.currency);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function saveAppSettings() {
+            appState.engineerName = document.getElementById('setting-engineer-name').value || 'المهندس';
+            appState.currency = document.getElementById('setting-currency').value || 'EGP';
+            
+            await dbSave('settings', { key: 'engineerName', value: appState.engineerName });
+            await dbSave('settings', { key: 'currency', value: appState.currency });
+
+            document.getElementById('dash-engineer-name').textContent = appState.engineerName;
+            document.querySelectorAll('.currency-label').forEach(el => el.textContent = appState.currency);
+            
+            alert('تم حفظ الإعدادات بنجاح');
+        }
+
+        async function ensureDefaultProject() {
+            const projects = await dbGetAll('projects');
+            if (projects.length === 0) {
+                const defaultProj = {
+                    id: 'proj_' + Date.now(),
+                    name: 'مشروع الموقع الرئيسي 01',
+                    code: 'PRJ-MAIN',
+                    location: 'القاهرة',
+                    client: 'شركة المقاولات العامة',
+                    consultant: 'المكتب الاستشاري الهندسي',
+                    status: 'active',
+                    createdAt: new Date().toISOString()
+                };
+                await dbSave('projects', defaultProj);
+                appState.activeProjectId = defaultProj.id;
+                await dbSave('settings', { key: 'activeProjectId', value: defaultProj.id });
+            } else if (!appState.activeProjectId || !projects.find(p => p.id === appState.activeProjectId)) {
+                appState.activeProjectId = projects[0].id;
+                await dbSave('settings', { key: 'activeProjectId', value: projects[0].id });
+            }
+            updateProjectSelectorUI(projects);
+        }
+
+        function updateProjectSelectorUI(projects) {
+            const select = document.getElementById('sidebar-project-select');
+            select.innerHTML = '';
+            projects.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.name;
+                if (p.id === appState.activeProjectId) opt.selected = true;
+                select.appendChild(opt);
+            });
+
+            const activeProj = projects.find(p => p.id === appState.activeProjectId);
+            if (activeProj) {
+                document.getElementById('current-project-name').textContent = activeProj.name;
+                document.getElementById('dash-project-name').textContent = activeProj.name;
+            }
+        }
+
+        async function changeActiveProject(projId) {
+            appState.activeProjectId = projId;
+            await dbSave('settings', { key: 'activeProjectId', value: projId });
+            const projects = await dbGetAll('projects');
+            updateProjectSelectorUI(projects);
+            
+            // Refresh current active tab view
+            const activeTab = document.querySelector('.nav-btn.active-nav')?.dataset.tab || 'dashboard';
+            switchTab(activeTab);
+        }
+
+        /* ==================== TAB NAVIGATION ENGINE ==================== */
+        function switchTab(tabId) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            
+            // Show requested
+            const target = document.getElementById(`tab-${tabId}`);
+            if (target) target.classList.remove('hidden');
+
+            // Active State Sidebar Buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if (btn.dataset.tab === tabId) {
+                    btn.classList.add('bg-slate-900', 'text-amber-500', 'active-nav');
+                } else {
+                    btn.classList.remove('bg-slate-900', 'text-amber-500', 'active-nav');
+                }
+            });
+
+            // Active State Mobile Nav
+            document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+                if (btn.dataset.tab === tabId) {
+                    btn.classList.add('text-amber-500');
+                    btn.classList.remove('text-slate-400');
+                } else {
+                    btn.classList.remove('text-amber-500');
+                    btn.classList.add('text-slate-400');
+                }
+            });
+
+            // Close Mobile Sidebar
+            closeSidebar();
+
+            // Tab-specific rendering triggers
+            if (tabId === 'dashboard') renderDashboard();
+            if (tabId === 'projects') renderProjects();
+            if (tabId === 'manpower') renderManpower();
+            if (tabId === 'materials') renderMaterials();
+            if (tabId === 'invoices') renderInvoices();
+            if (tabId === 'archive') renderArchive();
+            if (tabId === 'daily-report') initDailyReportTab();
+        }
+
+        /* ==================== RENDER 1: DASHBOARD ==================== */
+        async function renderDashboard() {
+            if (!appState.activeProjectId) return;
+            const pid = appState.activeProjectId;
+
+            const manpower = await dbGetByProject('manpower', pid);
+            const invoices = await dbGetByProject('invoices', pid);
+            const materials = await dbGetByProject('materials', pid);
+
+            // Filter timeframe
+            const timeframe = document.getElementById('dash-timeframe').value;
+            const now = new Date();
+            
+            const filterByTime = (items) => {
+                if (timeframe === 'all') return items;
+                return items.filter(item => {
+                    const d = new Date(item.date || item.createdAt);
+                    if (timeframe === 'month') {
+                        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                    }
+                    if (timeframe === 'week') {
+                        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                        return d >= oneWeekAgo;
+                    }
+                    return true;
+                });
+            };
+
+            const fManpower = filterByTime(manpower);
+            const fInvoices = filterByTime(invoices);
+
+            // Manpower totals
+            let totalCraftsmen = 0, totalHelpers = 0;
+            fManpower.forEach(m => {
+                totalCraftsmen += Number(m.craftsmen || 0);
+                totalHelpers += Number(m.helpers || 0);
+            });
+
+            document.getElementById('kpi-craftsmen').textContent = totalCraftsmen;
+            document.getElementById('kpi-helpers').textContent = totalHelpers;
+            document.getElementById('kpi-manpower-total').textContent = totalCraftsmen + totalHelpers;
+
+            // Invoice Breakdown
+            let totalUber = 0, countUber = 0;
+            let totalFood = 0, countFood = 0;
+            let totalMat = 0, countMat = 0;
+
+            fInvoices.forEach(inv => {
+                const amt = Number(inv.amount || 0);
+                if (inv.type === 'uber') { totalUber += amt; countUber++; }
+                if (inv.type === 'food') { totalFood += amt; countFood++; }
+                if (inv.type === 'materials') { totalMat += amt; countMat++; }
+            });
+
+            const grandTotalExpenses = totalUber + totalFood + totalMat;
+
+            document.getElementById('kpi-expenses-total').textContent = grandTotalExpenses.toLocaleString();
+            document.getElementById('kpi-uber-total').textContent = totalUber.toLocaleString();
+            document.getElementById('kpi-uber-count').textContent = countUber;
+            document.getElementById('kpi-food-total').textContent = totalFood.toLocaleString();
+            document.getElementById('kpi-food-count').textContent = countFood;
+
+            // Breakdown Bar Values
+            document.getElementById('dash-mat-inv-val').textContent = totalMat.toLocaleString();
+            document.getElementById('dash-uber-inv-val').textContent = totalUber.toLocaleString();
+            document.getElementById('dash-food-inv-val').textContent = totalFood.toLocaleString();
+            document.getElementById('dash-mat-items-count').textContent = `${materials.length} صنف`;
+
+            const matPct = grandTotalExpenses ? (totalMat / grandTotalExpenses) * 100 : 0;
+            const uberPct = grandTotalExpenses ? (totalUber / grandTotalExpenses) * 100 : 0;
+            const foodPct = grandTotalExpenses ? (totalFood / grandTotalExpenses) * 100 : 0;
+
+            document.getElementById('dash-bar-mat').style.width = `${matPct}%`;
+            document.getElementById('dash-bar-uber').style.width = `${uberPct}%`;
+            document.getElementById('dash-bar-food').style.width = `${foodPct}%`;
+
+            // Recent Table
+            const recent = fInvoices.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
+            const tbody = document.getElementById('dash-recent-table');
+            tbody.innerHTML = '';
+
+            if (recent.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-500">لا توجد فواتير مسجلة للفترة المحددة</td></tr>`;
+            } else {
+                recent.forEach(inv => {
+                    const typeLabel = inv.type === 'uber' ? 'أوبر/مواصلات' : inv.type === 'food' ? 'أكل ووجبات' : 'خامات';
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-800/50";
+                    tr.innerHTML = `
+                        <td class="p-2.5 font-bold text-slate-300">${inv.date}</td>
+                        <td class="p-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${inv.type === 'uber' ? 'bg-emerald-500/10 text-emerald-400' : inv.type === 'food' ? 'bg-rose-500/10 text-rose-400' : 'bg-amber-500/10 text-amber-400'}">${typeLabel}</span></td>
+                        <td class="p-2.5 text-slate-300">${inv.notes || inv.supplierName || inv.startPoint || 'بدون تفاصيل'}</td>
+                        <td class="p-2.5 font-black text-amber-500">${Number(inv.amount).toLocaleString()} ${appState.currency}</td>
+                        <td class="p-2.5">
+                            ${inv.photos && inv.photos.length > 0 ? `<button onclick="openLightbox('${inv.photos[0]}', 'فاتورة بتاريخ ${inv.date}')" class="text-amber-500 underline"><i class="fa-solid fa-image"></i> عرض</button>` : '<span class="text-slate-600">بدون صورة</span>'}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        /* ==================== RENDER 2: PROJECTS ==================== */
+        async function renderProjects() {
+            const projects = await dbGetAll('projects');
+            const grid = document.getElementById('projects-grid');
+            grid.innerHTML = '';
+
+            projects.forEach(p => {
+                const isActive = p.id === appState.activeProjectId;
+                const card = document.createElement('div');
+                card.className = `bg-slate-900 border ${isActive ? 'border-amber-500 shadow-lg shadow-amber-500/10' : 'border-slate-800'} rounded-2xl p-5 space-y-3 flex flex-col justify-between`;
+                
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start">
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md ${isActive ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400'}">${isActive ? 'المشروع النشط' : 'مشروع فرعي'}</span>
+                            <span class="text-xs text-slate-500">${p.code || ''}</span>
+                        </div>
+                        <h3 class="font-extrabold text-base text-white mt-2">${p.name}</h3>
+                        <p class="text-xs text-slate-400 mt-1"><i class="fa-solid fa-location-dot text-amber-500"></i> ${p.location || 'غير محدد'}</p>
+                        <div class="text-xs text-slate-400 mt-3 space-y-1">
+                            <div>العميل: <strong class="text-slate-200">${p.client || '-'}</strong></div>
+                            <div>الاستشاري: <strong class="text-slate-200">${p.consultant || '-'}</strong></div>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                        ${!isActive ? `<button onclick="changeActiveProject('${p.id}')" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-1.5 rounded-xl text-xs">تفعيل كنشط</button>` : '<span class="text-xs font-bold text-emerald-400"><i class="fa-solid fa-circle-check"></i> جاري العمل عليه</span>'}
+                        <button onclick="editProject('${p.id}')" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs"><i class="fa-solid fa-pen"></i></button>
+                        ${projects.length > 1 ? `<button onclick="deleteProject('${p.id}')" class="p-1.5 bg-rose-500/10 hover:bg-rose-600 text-rose-500 hover:text-white rounded-lg text-xs"><i class="fa-solid fa-trash"></i></button>` : ''}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        async function handleSaveProject(e) {
+            e.preventDefault();
+            const id = document.getElementById('project-id').value || 'proj_' + Date.now();
+            const project = {
+                id: id,
+                name: document.getElementById('proj-name').value,
+                code: document.getElementById('proj-code').value,
+                location: document.getElementById('proj-location').value,
+                client: document.getElementById('proj-client').value,
+                consultant: document.getElementById('proj-consultant').value,
+                createdAt: new Date().toISOString()
+            };
+
+            await dbSave('projects', project);
+            closeModal('modal-project');
+            document.getElementById('form-project').reset();
+            
+            const projects = await dbGetAll('projects');
+            if (projects.length === 1) appState.activeProjectId = id;
+            updateProjectSelectorUI(projects);
+            renderProjects();
+        }
+
+        async function editProject(id) {
+            const projects = await dbGetAll('projects');
+            const p = projects.find(item => item.id === id);
+            if (!p) return;
+
+            document.getElementById('project-id').value = p.id;
+            document.getElementById('proj-name').value = p.name;
+            document.getElementById('proj-code').value = p.code || '';
+            document.getElementById('proj-location').value = p.location || '';
+            document.getElementById('proj-client').value = p.client || '';
+            document.getElementById('proj-consultant').value = p.consultant || '';
+            
+            document.getElementById('modal-project-title').textContent = 'تعديل بيانات المشروع';
+            openModal('modal-project');
+        }
+
+        async function deleteProject(id) {
+            if (!confirm('هل أنت تأكد من حذف هذا المشروع وكافة البيانات المرتبطة به؟ لا يمكن التراجع!')) return;
+            await dbDelete('projects', id);
+            const projects = await dbGetAll('projects');
+            if (appState.activeProjectId === id && projects.length > 0) {
+                appState.activeProjectId = projects[0].id;
+            }
+            updateProjectSelectorUI(projects);
+            renderProjects();
+        }
+
+        /* ==================== RENDER 3: MANPOWER ==================== */
+        async function renderManpower() {
+            if (!appState.activeProjectId) return;
+            const records = await dbGetByProject('manpower', appState.activeProjectId);
+            
+            // Filter by month
+            const monthPicker = document.getElementById('manpower-month-picker');
+            if (!monthPicker.value) {
+                const now = new Date();
+                monthPicker.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+            }
+
+            const selectedMonth = monthPicker.value; // YYYY-MM
+            const filtered = records.filter(r => r.date.startsWith(selectedMonth));
+
+            // Totals
+            let totalCraft = 0, totalHelp = 0;
+            filtered.forEach(r => {
+                totalCraft += Number(r.craftsmen || 0);
+                totalHelp += Number(r.helpers || 0);
+            });
+
+            document.getElementById('manpower-days-count').textContent = filtered.length;
+            document.getElementById('manpower-total-crafts').textContent = totalCraft;
+            document.getElementById('manpower-total-helps').textContent = totalHelp;
+
+            const tbody = document.getElementById('manpower-table-body');
+            tbody.innerHTML = '';
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-500">لا يوجد سجل عمالة لهذا الشهر</td></tr>`;
+                return;
+            }
+
+            filtered.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(r => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/50";
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-amber-400">${r.date}</td>
+                    <td class="p-3 font-bold text-white">${r.craftsmen}</td>
+                    <td class="p-3 font-bold text-slate-300">${r.helpers}</td>
+                    <td class="p-3 font-extrabold text-amber-500">${Number(r.craftsmen) + Number(r.helpers)}</td>
+                    <td class="p-3 text-slate-400">${r.notes || '-'}</td>
+                    <td class="p-3 text-center flex justify-center gap-2">
+                        <button onclick="editManpower('${r.id}')" class="text-slate-400 hover:text-amber-500"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteManpower('${r.id}')" class="text-slate-400 hover:text-rose-500"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function handleSaveManpower(e) {
+            e.preventDefault();
+            const dateVal = document.getElementById('manpower-date').value;
+            const records = await dbGetByProject('manpower', appState.activeProjectId);
+
+            const existingId = document.getElementById('manpower-id').value;
+            if (!existingId && records.some(r => r.date === dateVal)) {
+                alert('يوجد حصر يومي مسجل بالفعل لهذا التاريخ! يمكنك تعديله من الجدول.');
+                return;
+            }
+
+            const record = {
+                id: existingId || 'mp_' + Date.now(),
+                projectId: appState.activeProjectId,
+                date: dateVal,
+                craftsmen: Number(document.getElementById('manpower-craftsmen').value),
+                helpers: Number(document.getElementById('manpower-helpers').value),
+                notes: document.getElementById('manpower-notes').value,
+                updatedAt: new Date().toISOString()
+            };
+
+            await dbSave('manpower', record);
+            closeModal('modal-manpower');
+            document.getElementById('form-manpower').reset();
+            renderManpower();
+        }
+
+        async function copyPreviousDayManpower() {
+            const records = await dbGetByProject('manpower', appState.activeProjectId);
+            if (records.length === 0) {
+                alert('لا توجد سجلات سابقة للنسخ');
+                return;
+            }
+            records.sort((a,b) => new Date(b.date) - new Date(a.date));
+            const last = records[0];
+
+            document.getElementById('manpower-id').value = '';
+            document.getElementById('manpower-date').value = new Date().toISOString().split('T')[0];
+            document.getElementById('manpower-craftsmen').value = last.craftsmen;
+            document.getElementById('manpower-helpers').value = last.helpers;
+            document.getElementById('manpower-notes').value = `نسخ من حصر يوم ${last.date}: ${last.notes || ''}`;
+            
+            openModal('modal-manpower');
+        }
+
+        async function editManpower(id) {
+            const records = await dbGetByProject('manpower', appState.activeProjectId);
+            const r = records.find(item => item.id === id);
+            if (!r) return;
+
+            document.getElementById('manpower-id').value = r.id;
+            document.getElementById('manpower-date').value = r.date;
+            document.getElementById('manpower-craftsmen').value = r.craftsmen;
+            document.getElementById('manpower-helpers').value = r.helpers;
+            document.getElementById('manpower-notes').value = r.notes || '';
+            openModal('modal-manpower');
+        }
+
+        async function deleteManpower(id) {
+            if (!confirm('حذف سجل العمالة؟')) return;
+            await dbDelete('manpower', id);
+            renderManpower();
+        }
+
+        /* ==================== RENDER 4: MATERIALS ==================== */
+        async function renderMaterials() {
+            if (!appState.activeProjectId) return;
+            let materials = await dbGetByProject('materials', appState.activeProjectId);
+
+            const search = document.getElementById('mat-search-input').value.toLowerCase();
+            const category = document.getElementById('mat-category-filter').value;
+
+            if (search) {
+                materials = materials.filter(m => m.name.toLowerCase().includes(search) || (m.supplier && m.supplier.toLowerCase().includes(search)));
+            }
+
+            if (category !== 'all') {
+                materials = materials.filter(m => m.category === category);
+            }
+
+            document.getElementById('mat-count-badge').textContent = materials.length;
+            const grid = document.getElementById('materials-cards-grid');
+            grid.innerHTML = '';
+
+            if (materials.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-10 text-slate-500">لا توجد خامات مسجلة تطابق البحث</div>`;
+                return;
+            }
+
+            materials.forEach(m => {
+                const card = document.createElement('div');
+                card.className = "bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3 hover:border-slate-700 transition";
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start">
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-800 text-amber-500">${m.category}</span>
+                            <span class="text-xs text-slate-500">${m.date || ''}</span>
+                        </div>
+                        <h3 class="font-bold text-sm text-white mt-2">${m.name}</h3>
+                        <div class="mt-2 text-xl font-black text-amber-400">
+                            ${m.qty} <span class="text-xs font-normal text-slate-400">${m.unit}</span>
+                        </div>
+                        ${m.supplier ? `<p class="text-xs text-slate-400 mt-1"><i class="fa-solid fa-truck"></i> المورد: ${m.supplier}</p>` : ''}
+                    </div>
+
+                    ${m.image ? `
+                        <div class="h-28 rounded-xl overflow-hidden bg-slate-950 cursor-pointer" onclick="openLightbox('${m.image}', '${m.name}')">
+                            <img src="${m.image}" alt="${m.name}" class="w-full h-full object-cover">
+                        </div>
+                    ` : ''}
+
+                    <div class="pt-2 border-t border-slate-800 flex justify-end gap-2">
+                        <button onclick="editMaterial('${m.id}')" class="text-slate-400 hover:text-amber-500 text-xs px-2 py-1"><i class="fa-solid fa-pen"></i> تعديل</button>
+                        <button onclick="deleteMaterial('${m.id}')" class="text-slate-400 hover:text-rose-500 text-xs px-2 py-1"><i class="fa-solid fa-trash"></i> حذف</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        async function handleMaterialPhotoInput(event) {
+            const file = event.target.files[0];
+            if (file) {
+                appState.tempMaterialImage = await fileToBase64(file);
+                document.getElementById('mat-photo-img').src = appState.tempMaterialImage;
+                document.getElementById('mat-photo-preview').classList.remove('hidden');
+            }
+        }
+
+        function clearMaterialPhoto() {
+            appState.tempMaterialImage = null;
+            document.getElementById('mat-photo-img').src = '';
+            document.getElementById('mat-photo-preview').classList.add('hidden');
+        }
+
+        async function handleSaveMaterial(e) {
+            e.preventDefault();
+            let base64Image = appState.tempMaterialImage;
+
+            if (!base64Image) {
+                const existingId = document.getElementById('material-id').value;
+                if (existingId) {
+                    const existing = (await dbGetByProject('materials', appState.activeProjectId)).find(m => m.id === existingId);
+                    if (existing) base64Image = existing.image;
+                }
+            }
+
+            const item = {
+                id: document.getElementById('material-id').value || 'mat_' + Date.now(),
+                projectId: appState.activeProjectId,
+                name: document.getElementById('mat-name').value,
+                category: document.getElementById('mat-category').value,
+                unit: document.getElementById('mat-unit').value,
+                qty: Number(document.getElementById('mat-qty').value),
+                date: document.getElementById('mat-date').value || new Date().toISOString().split('T')[0],
+                supplier: document.getElementById('mat-supplier').value,
+                image: base64Image,
+                updatedAt: new Date().toISOString()
+            };
+
+            await dbSave('materials', item);
+            closeModal('modal-material');
+            document.getElementById('form-material').reset();
+            clearMaterialPhoto();
+            renderMaterials();
+        }
+
+        async function editMaterial(id) {
+            const materials = await dbGetByProject('materials', appState.activeProjectId);
+            const m = materials.find(item => item.id === id);
+            if (!m) return;
+
+            document.getElementById('material-id').value = m.id;
+            document.getElementById('mat-name').value = m.name;
+            document.getElementById('mat-category').value = m.category;
+            document.getElementById('mat-unit').value = m.unit;
+            document.getElementById('mat-qty').value = m.qty;
+            document.getElementById('mat-date').value = m.date;
+            document.getElementById('mat-supplier').value = m.supplier || '';
+            
+            if (m.image) {
+                appState.tempMaterialImage = m.image;
+                document.getElementById('mat-photo-img').src = m.image;
+                document.getElementById('mat-photo-preview').classList.remove('hidden');
+            } else {
+                clearMaterialPhoto();
+            }
+            openModal('modal-material');
+        }
+
+        async function deleteMaterial(id) {
+            if (!confirm('حذف الخامات المسجلة؟')) return;
+            await dbDelete('materials', id);
+            renderMaterials();
+        }
+
+        /* ==================== RENDER 5: INVOICES & PHOTOS ==================== */
+        function switchInvoiceSubTab(subtab) {
+            appState.invoicesSubTab = subtab;
+            document.querySelectorAll('.inv-subtab').forEach(btn => {
+                if (btn.dataset.subtab === subtab) {
+                    btn.classList.add('bg-amber-500', 'text-slate-950', 'active-inv-tab');
+                    btn.classList.remove('text-slate-300');
+                } else {
+                    btn.classList.remove('bg-amber-500', 'text-slate-950', 'active-inv-tab');
+                    btn.classList.add('text-slate-300');
+                }
+            });
+            renderInvoices();
+        }
+
+        function toggleInvoiceFields() {
+            const type = document.getElementById('inv-type').value;
+            const uberDiv = document.getElementById('inv-field-uber');
+            const suppDiv = document.getElementById('inv-field-supplier');
+
+            if (type === 'uber') {
+                uberDiv.classList.remove('hidden');
+                suppDiv.classList.add('hidden');
+            } else {
+                uberDiv.classList.add('hidden');
+                suppDiv.classList.remove('hidden');
+            }
+        }
+
+        async function handleInvoicePhotoUpload(event) {
+            const files = Array.from(event.target.files);
+            for (const file of files) {
+                const b64 = await fileToBase64(file);
+                appState.tempInvoiceImages.push(b64);
+            }
+            renderTempInvoicePhotosPreview();
+            event.target.value = '';
+        }
+
+        function renderTempInvoicePhotosPreview() {
+            const grid = document.getElementById('inv-photos-preview-grid');
+            grid.innerHTML = '';
+            appState.tempInvoiceImages.forEach((img, index) => {
+                const item = document.createElement('div');
+                item.className = "relative h-16 rounded-lg overflow-hidden bg-slate-950 border border-slate-700";
+                item.innerHTML = `
+                    <img src="${img}" class="w-full h-full object-cover">
+                    <button type="button" onclick="removeTempInvoicePhoto(${index})" class="absolute top-0.5 right-0.5 bg-rose-600 text-white rounded-full w-4 h-4 text-[10px] flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+                `;
+                grid.appendChild(item);
+            });
+        }
+
+        function removeTempInvoicePhoto(idx) {
+            appState.tempInvoiceImages.splice(idx, 1);
+            renderTempInvoicePhotosPreview();
+        }
+
+        async function handleSaveInvoice(e) {
+            e.preventDefault();
+            const inv = {
+                id: document.getElementById('invoice-id').value || 'inv_' + Date.now(),
+                projectId: appState.activeProjectId,
+                type: document.getElementById('inv-type').value,
+                amount: Number(document.getElementById('inv-amount').value),
+                date: document.getElementById('inv-date').value,
+                startPoint: document.getElementById('inv-start-point').value,
+                endPoint: document.getElementById('inv-end-point').value,
+                supplierName: document.getElementById('inv-supplier-name').value,
+                notes: document.getElementById('inv-notes').value,
+                photos: [...appState.tempInvoiceImages],
+                createdAt: new Date().toISOString()
+            };
+
+            await dbSave('invoices', inv);
+            closeModal('modal-invoice');
+            document.getElementById('form-invoice').reset();
+            appState.tempInvoiceImages = [];
+            renderTempInvoicePhotosPreview();
+            renderInvoices();
+        }
+
+        async function renderInvoices() {
+            if (!appState.activeProjectId) return;
+            let invoices = await dbGetByProject('invoices', appState.activeProjectId);
+
+            if (appState.invoicesSubTab !== 'all') {
+                invoices = invoices.filter(i => i.type === appState.invoicesSubTab);
+            }
+
+            const grid = document.getElementById('invoices-list-grid');
+            grid.innerHTML = '';
+
+            if (invoices.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-10 text-slate-500">لا توجد فواتير مسجلة لهذا القسم</div>`;
+                return;
+            }
+
+            invoices.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(inv => {
+                const card = document.createElement('div');
+                card.className = "bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between space-y-3";
+                
+                const typeBadge = inv.type === 'uber' ? '<span class="bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold">أوبر/انتقالات</span>'
+                    : inv.type === 'food' ? '<span class="bg-rose-500/10 text-rose-400 px-2 py-0.5 rounded text-[10px] font-bold">أكل ووجبات</span>'
+                    : '<span class="bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded text-[10px] font-bold">خامات</span>';
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start">
+                            ${typeBadge}
+                            <span class="text-xs text-slate-500">${inv.date}</span>
+                        </div>
+                        <div class="mt-2 text-xl font-black text-amber-500">
+                            ${Number(inv.amount).toLocaleString()} <span class="text-xs text-slate-400">${appState.currency}</span>
+                        </div>
+                        ${inv.type === 'uber' ? `<p class="text-xs text-slate-300 mt-2 font-semibold"><i class="fa-solid fa-route text-emerald-400"></i> ${inv.startPoint || 'من'} ➔ ${inv.endPoint || 'إلى'}</p>` : ''}
+                        ${inv.supplierName ? `<p class="text-xs text-slate-300 mt-2 font-semibold"><i class="fa-solid fa-store text-amber-400"></i> ${inv.supplierName}</p>` : ''}
+                        <p class="text-xs text-slate-400 mt-1">${inv.notes || ''}</p>
+                    </div>
+
+                    ${inv.photos && inv.photos.length > 0 ? `
+                        <div class="grid grid-cols-3 gap-1.5 pt-2">
+                            ${inv.photos.map(p => `<img src="${p}" class="h-16 w-full object-cover rounded-lg cursor-pointer bg-slate-950 border border-slate-800" onclick="openLightbox('${p}', 'فاتورة ${inv.date}')">`).join('')}
+                        </div>
+                    ` : ''}
+
+                    <div class="pt-2 border-t border-slate-800 flex justify-end gap-2">
+                        <button onclick="deleteInvoice('${inv.id}')" class="text-slate-400 hover:text-rose-500 text-xs px-2 py-1"><i class="fa-solid fa-trash"></i> حذف</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        async function deleteInvoice(id) {
+            if (!confirm('حذف هذه الفاتورة؟')) return;
+            await dbDelete('invoices', id);
+            renderInvoices();
+        }
+
+        /* ==================== RENDER 6: ARCHIVE ==================== */
+        async function renderArchive() {
+            if (!appState.activeProjectId) return;
+            let invoices = await dbGetByProject('invoices', appState.activeProjectId);
+
+            const search = document.getElementById('archive-search').value.toLowerCase();
+            const typeFilter = document.getElementById('archive-filter-type').value;
+            const sortVal = document.getElementById('archive-sort').value;
+
+            if (search) {
+                invoices = invoices.filter(i => (i.supplierName && i.supplierName.toLowerCase().includes(search)) || (i.notes && i.notes.toLowerCase().includes(search)));
+            }
+
+            if (typeFilter !== 'all') {
+                invoices = invoices.filter(i => i.type === typeFilter);
+            }
+
+            invoices.sort((a,b) => sortVal === 'desc' ? new Date(b.date) - new Date(a.date) : new Date(a.date) - new Date(b.date));
+
+            const grid = document.getElementById('archive-gallery-grid');
+            grid.innerHTML = '';
+
+            let hasPhotos = false;
+            invoices.forEach(inv => {
+                if (inv.photos && inv.photos.length > 0) {
+                    hasPhotos = true;
+                    inv.photos.forEach(photo => {
+                        const card = document.createElement('div');
+                        card.className = "bg-slate-900 border border-slate-800 rounded-xl overflow-hidden group hover:border-amber-500/50 transition";
+                        card.innerHTML = `
+                            <div class="h-32 bg-slate-950 overflow-hidden cursor-pointer" onclick="openLightbox('${photo}', 'فاتورة: ${inv.supplierName || inv.type} - ${inv.date}')">
+                                <img src="${photo}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                            </div>
+                            <div class="p-2 text-[11px] space-y-0.5">
+                                <div class="font-bold text-amber-500 truncate">${Number(inv.amount).toLocaleString()} ${appState.currency}</div>
+                                <div class="text-slate-400 text-[10px]">${inv.date}</div>
+                            </div>
+                        `;
+                        grid.appendChild(card);
+                    });
+                }
+            });
+
+            if (!hasPhotos) {
+                grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-500">لا توجد صور فواتير مؤرشفة تطابق الفلترة</div>`;
+            }
+        }
+
+        /* ==================== RENDER 7: DAILY SITE REPORT ==================== */
+        async function initDailyReportTab() {
+            const dateInput = document.getElementById('dr-date');
+            if (!dateInput.value) {
+                dateInput.value = new Date().toISOString().split('T')[0];
+            }
+            await loadDailyReportForDate(dateInput.value);
+        }
+
+        async function loadDailyReportForDate(dateVal) {
+            if (!appState.activeProjectId) return;
+            const reports = await dbGetByProject('dailyReports', appState.activeProjectId);
+            const r = reports.find(item => item.date === dateVal);
+
+            const container = document.getElementById('dr-works-container');
+            container.innerHTML = '';
+            document.getElementById('dr-photos-preview').innerHTML = '';
+            appState.tempDailyReportImages = [];
+
+            if (r) {
+                document.getElementById('dr-weather').value = r.weather || '';
+                document.getElementById('dr-progress-percent').value = r.progress || '';
+                document.getElementById('dr-tech-elec').value = r.techElec || 0;
+                document.getElementById('dr-tech-cables').value = r.techCables || 0;
+                document.getElementById('dr-tech-lc').value = r.techLc || 0;
+                document.getElementById('dr-tech-helpers').value = r.techHelpers || 0;
+                document.getElementById('dr-materials-used').value = r.materialsUsed || '';
+                document.getElementById('dr-equipment-used').value = r.equipmentUsed || '';
+                document.getElementById('dr-obstacles').value = r.obstacles || '';
+                document.getElementById('dr-next-plan').value = r.nextPlan || '';
+
+                if (r.works && r.works.length > 0) {
+                    r.works.forEach(w => addDailyReportWorkItem(w));
+                } else {
+                    addDailyReportWorkItem();
+                }
+
+                if (r.photos) {
+                    appState.tempDailyReportImages = r.photos;
+                    renderDRPhotosPreview();
+                }
+            } else {
+                const mpRecords = await dbGetByProject('manpower', appState.activeProjectId);
+                const mpToday = mpRecords.find(m => m.date === dateVal);
+                
+                document.getElementById('dr-weather').value = '';
+                document.getElementById('dr-progress-percent').value = '';
+                document.getElementById('dr-tech-elec').value = mpToday ? mpToday.craftsmen : 0;
+                document.getElementById('dr-tech-helpers').value = mpToday ? mpToday.helpers : 0;
+                document.getElementById('dr-tech-cables').value = 0;
+                document.getElementById('dr-tech-lc').value = 0;
+                document.getElementById('dr-materials-used').value = '';
+                document.getElementById('dr-equipment-used').value = '';
+                document.getElementById('dr-obstacles').value = '';
+                document.getElementById('dr-next-plan').value = '';
+
+                addDailyReportWorkItem();
+            }
+        }
+
+        function addDailyReportWorkItem(data = null) {
+            const container = document.getElementById('dr-works-container');
+            const div = document.createElement('div');
+            div.className = "dr-work-row grid grid-cols-1 sm:grid-cols-4 gap-2 bg-slate-950 p-2.5 rounded-xl border border-slate-800 items-center";
+            
+            div.innerHTML = `
+                <input type="text" placeholder="اسم العمل (مثال: تمديد مواسير)" value="${data ? data.title : ''}" class="dr-work-title bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white sm:col-span-2">
+                <input type="text" placeholder="الكمية المنفذة ومكانها" value="${data ? data.qty : ''}" class="dr-work-qty bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white">
+                <div class="flex items-center gap-1">
+                    <input type="text" placeholder="ملاحظات" value="${data ? data.notes : ''}" class="dr-work-notes bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white flex-1">
+                    <button type="button" onclick="this.closest('.dr-work-row').remove()" class="text-rose-500 hover:text-rose-400 p-2 text-xs"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        async function handleDailyReportPhotos(event) {
+            const files = Array.from(event.target.files);
+            for (const file of files) {
+                const b64 = await fileToBase64(file);
+                appState.tempDailyReportImages.push(b64);
+            }
+            renderDRPhotosPreview();
+            event.target.value = '';
+        }
+
+        function renderDRPhotosPreview() {
+            const preview = document.getElementById('dr-photos-preview');
+            preview.innerHTML = '';
+            appState.tempDailyReportImages.forEach((img, idx) => {
+                const div = document.createElement('div');
+                div.className = "relative h-20 bg-slate-950 rounded-lg overflow-hidden border border-slate-800";
+                div.innerHTML = `
+                    <img src="${img}" class="w-full h-full object-cover">
+                    <button onclick="appState.tempDailyReportImages.splice(${idx},1); renderDRPhotosPreview();" class="absolute top-1 right-1 bg-rose-600 text-white rounded-full w-4 h-4 text-[10px] flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+                `;
+                preview.appendChild(div);
+            });
+        }
+
+        async function saveDailyReport() {
+            const dateVal = document.getElementById('dr-date').value;
+            if (!dateVal) return alert('يرجى تحديد التاريخ');
+
+            const workRows = document.querySelectorAll('.dr-work-row');
+            const works = [];
+            workRows.forEach(row => {
+                const title = row.querySelector('.dr-work-title').value;
+                const qty = row.querySelector('.dr-work-qty').value;
+                const notes = row.querySelector('.dr-work-notes').value;
+                if (title) works.push({ title, qty, notes });
+            });
+
+            const report = {
+                id: `dr_${appState.activeProjectId}_${dateVal}`,
+                projectId: appState.activeProjectId,
+                date: dateVal,
+                weather: document.getElementById('dr-weather').value,
+                progress: document.getElementById('dr-progress-percent').value,
+                techElec: Number(document.getElementById('dr-tech-elec').value),
+                techCables: Number(document.getElementById('dr-tech-cables').value),
+                techLc: Number(document.getElementById('dr-tech-lc').value),
+                techHelpers: Number(document.getElementById('dr-tech-helpers').value),
+                works: works,
+                materialsUsed: document.getElementById('dr-materials-used').value,
+                equipmentUsed: document.getElementById('dr-equipment-used').value,
+                obstacles: document.getElementById('dr-obstacles').value,
+                nextPlan: document.getElementById('dr-next-plan').value,
+                photos: appState.tempDailyReportImages,
+                updatedAt: new Date().toISOString()
+            };
+
+            await dbSave('dailyReports', report);
+            alert('تم حفظ يومية الموقع بنجاح في قاعدة البيانات المحلية');
+        }
+
+        async function exportDailyReportPDF() {
+            await saveDailyReport();
+            const element = document.getElementById('daily-report-printable-area');
+            const opt = {
+                margin:       [0.4, 0.4, 0.4, 0.4],
+                filename:     `Daily_Site_Report_${document.getElementById('dr-date').value}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(element).save();
+        }
+
+        /* ==================== RENDER 8: REPORTS PDF EXPORT ==================== */
+        async function generateCustomPDFReport() {
+            const type = document.getElementById('report-type').value;
+            const startDate = document.getElementById('report-start-date').value;
+            const endDate = document.getElementById('report-end-date').value;
+            const includeImgs = document.getElementById('report-include-images').checked;
+
+            if (type === 'daily_report') {
+                switchTab('daily-report');
+                exportDailyReportPDF();
+                return;
+            }
+
+            const projects = await dbGetAll('projects');
+            const activeP = projects.find(p => p.id === appState.activeProjectId);
+
+            let contentHTML = `
+                <div style="font-family: 'Cairo', sans-serif; direction: rtl; text-align: right; padding: 20px; color: #0f172a;">
+                    <div style="border-bottom: 2px solid #f59e0b; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between;">
+                        <div>
+                            <h1 style="font-size: 20px; font-weight: 800; margin: 0; color: #0f172a;">Site Master Electrical - تقرير موقع</h1>
+                            <p style="font-size: 12px; color: #475569; margin: 5px 0 0 0;">المشروع: <strong>${activeP ? activeP.name : '-'}</strong></p>
+                        </div>
+                        <div style="text-align: left; font-size: 11px; color: #64748b;">
+                            <div>تاريخ الإصدار: ${new Date().toLocaleDateString('ar-EG')}</div>
+                            <div>المهندس المسؤول: ${appState.engineerName}</div>
+                        </div>
+                    </div>
+            `;
+
+            if (type.startsWith('invoices')) {
+                let invs = await dbGetByProject('invoices', appState.activeProjectId);
+                if (type === 'invoices_uber') invs = invs.filter(i => i.type === 'uber');
+                if (type === 'invoices_food') invs = invs.filter(i => i.type === 'food');
+                if (type === 'invoices_mat') invs = invs.filter(i => i.type === 'materials');
+
+                if (startDate) invs = invs.filter(i => i.date >= startDate);
+                if (endDate) invs = invs.filter(i => i.date <= endDate);
+
+                let total = 0;
+                invs.forEach(i => total += Number(i.amount));
+
+                contentHTML += `
+                    <h3 style="font-size: 14px; font-weight: bold; margin-bottom: 10px;">جدول تفاصيل الفواتير والمصروفات</h3>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: right;" border="1" cellpadding="6">
+                        <thead>
+                            <tr style="background-color: #f1f5f9;">
+                                <th>التاريخ</th>
+                                <th>النوع</th>
+                                <th>الجهة / البيان</th>
+                                <th>المبلغ (${appState.currency})</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${invs.map(i => `
+                                <tr>
+                                    <td>${i.date}</td>
+                                    <td>${i.type === 'uber' ? 'انتقالات' : i.type === 'food' ? 'وجبات' : 'خامات'}</td>
+                                    <td>${i.notes || i.supplierName || (i.startPoint + ' ➔ ' + i.endPoint) || '-'}</td>
+                                    <td style="font-weight: bold;">${Number(i.amount).toLocaleString()}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    <div style="margin-top: 15px; font-size: 14px; font-weight: 800; text-align: left;">
+                        الإجمالي الكلي: ${total.toLocaleString()} ${appState.currency}
+                    </div>
+                `;
+
+                if (includeImgs) {
+                    contentHTML += `<div style="margin-top: 30px; page-break-before: always;"><h3 style="font-size: 14px;">مرفقات الفواتير المصورة:</h3><div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">`;
+                    invs.forEach(i => {
+                        if (i.photos) i.photos.forEach(p => {
+                            contentHTML += `<img src="${p}" style="width: 100%; height: 180px; object-fit: cover; border-radius: 8px; border: 1px solid #ccc;">`;
+                        });
+                    });
+                    contentHTML += `</div></div>`;
+                }
+            } else if (type === 'manpower') {
+                let mp = await dbGetByProject('manpower', appState.activeProjectId);
+                if (startDate) mp = mp.filter(i => i.date >= startDate);
+                if (endDate) mp = mp.filter(i => i.date <= endDate);
+
+                contentHTML += `
+                    <h3 style="font-size: 14px; font-weight: bold; margin-bottom: 10px;">سجل حصر العمالة اليومية</h3>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: right;" border="1" cellpadding="6">
+                        <thead>
+                            <tr style="background-color: #f1f5f9;">
+                                <th>التاريخ</th>
+                                <th>عدد الصنايعية</th>
+                                <th>عدد المساعدين</th>
+                                <th>الإجمالي</th>
+                                <th>ملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${mp.map(m => `
+                                <tr>
+                                    <td>${m.date}</td>
+                                    <td>${m.craftsmen}</td>
+                                    <td>${m.helpers}</td>
+                                    <td style="font-weight: bold;">${Number(m.craftsmen) + Number(m.helpers)}</td>
+                                    <td>${m.notes || '-'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            contentHTML += `</div>`;
+
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = contentHTML;
+            document.body.appendChild(wrapper);
+
+            const opt = {
+                margin:       0.3,
+                filename:     `Report_${type}_${Date.now()}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            await html2pdf().set(opt).from(wrapper).save();
+            document.body.removeChild(wrapper);
+        }
+
+        /* ==================== RENDER 9: BACKUP & RESTORE JSON ==================== */
+        async function exportDatabaseJSON(allProjects = false) {
+            const data = {
+                version: 3.0,
+                exportDate: new Date().toISOString(),
+                projects: await dbGetAll('projects'),
+                manpower: await dbGetAll('manpower'),
+                materials: await dbGetAll('materials'),
+                invoices: await dbGetAll('invoices'),
+                dailyReports: await dbGetAll('dailyReports'),
+                settings: await dbGetAll('settings')
+            };
+
+            if (!allProjects && appState.activeProjectId) {
+                const pid = appState.activeProjectId;
+                data.manpower = data.manpower.filter(m => m.projectId === pid);
+                data.materials = data.materials.filter(m => m.projectId === pid);
+                data.invoices = data.invoices.filter(m => m.projectId === pid);
+                data.dailyReports = data.dailyReports.filter(m => m.projectId === pid);
+            }
+
+            const jsonStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `SiteMasterBackup_${allProjects ? 'All' : appState.activeProjectId}_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function importDatabaseJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.projects) for (const item of data.projects) await dbSave('projects', item);
+                    if (data.manpower) for (const item of data.manpower) await dbSave('manpower', item);
+                    if (data.materials) for (const item of data.materials) await dbSave('materials', item);
+                    if (data.invoices) for (const item of data.invoices) await dbSave('invoices', item);
+                    if (data.dailyReports) for (const item of data.dailyReports) await dbSave('dailyReports', item);
+
+                    alert('تم استعادة القاعدة والبيانات بنجاح!');
+                    location.reload();
+                } catch (err) {
+                    alert('خطأ في قراءة ملف JSON النسخة الاحتياطية');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        /* ==================== DEMO SEED DATA ==================== */
+        async function seedDemoData() {
+            const demoProjId = 'proj_demo_101';
+            await dbSave('projects', {
+                id: demoProjId,
+                name: 'محطة كهرباء العاصمة الإدارية R7',
+                code: 'ELE-SUB-101',
+                location: 'العاصمة الإدارية',
+                client: 'شركة العاصمة للتنمية',
+                consultant: 'مكتب دار الهندسة',
+                createdAt: new Date().toISOString()
+            });
+
+            const today = new Date().toISOString().split('T')[0];
+
+            await dbSave('manpower', {
+                id: 'mp_demo_1',
+                projectId: demoProjId,
+                date: today,
+                craftsmen: 8,
+                helpers: 4,
+                notes: 'سحب كابلات التيار الخفيف بالدور الأول'
+            });
+
+            await dbSave('materials', {
+                id: 'mat_demo_1',
+                projectId: demoProjId,
+                name: 'كابلات سويدي 3*185 مم²',
+                category: 'كابلات وموصلات',
+                unit: 'متر',
+                qty: 450,
+                date: today,
+                supplier: 'السويدي الكتريك'
+            });
+
+            await dbSave('invoices', {
+                id: 'inv_demo_1',
+                projectId: demoProjId,
+                type: 'uber',
+                amount: 350,
+                date: today,
+                startPoint: 'مدينة نصر',
+                endPoint: 'الموقع بالعاصمة',
+                notes: 'انتقال مهندسين الموقع لمتابعة التوريد'
+            });
+
+            await changeActiveProject(demoProjId);
+            alert('تم تعبئة مشروع تجريبي وإضافته لقاعدة البيانات بنجاح!');
+        }
+
+        async function resetAllDataDataConfirm() {
+            if (!confirm('تنبيه هام جداً: سيتم حذف كافة المشاريع والفواتير والصور والعمالة بالكامل من هذا الجهاز! هل أنت متأكد؟')) return;
+            indexedDB.deleteDatabase(DB_NAME);
+            location.reload();
+        }
+
+        /* ==================== UTILITY FUNCTIONS & UI HELPERS ==================== */
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function openLightbox(imgUrl, caption) {
+            document.getElementById('lightbox-img').src = imgUrl;
+            document.getElementById('lightbox-caption').textContent = caption || 'عرض الصورة';
+            document.getElementById('lightbox-download-link').href = imgUrl;
+            openModal('modal-lightbox');
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        function showProjectProgressModal() {
+            openModal('modal-project-progress');
+        }
+
+        function setupUIListeners() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const btnOpen = document.getElementById('btn-toggle-sidebar');
+            const btnClose = document.getElementById('btn-close-sidebar');
+
+            btnOpen.addEventListener('click', () => {
+                sidebar.classList.remove('translate-x-full');
+                overlay.classList.remove('hidden');
+            });
+
+            const closeSidebar = () => {
+                sidebar.classList.add('translate-x-full');
+                overlay.classList.add('hidden');
+            };
+
+            btnClose.addEventListener('click', closeSidebar);
+            overlay.addEventListener('click', closeSidebar);
+            window.closeSidebar = closeSidebar;
+        }
+
+        /* ==================== PWA STANDALONE SETUP ==================== */
+        let deferredPrompt;
+        function setupPWA() {
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                const btn = document.getElementById('btn-pwa-install');
+                btn.classList.remove('hidden');
+                btn.addEventListener('click', async () => {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    if (outcome === 'accepted') {
+                        btn.classList.add('hidden');
+                    }
+                    deferredPrompt = null;
+                });
+            });
+        }
+    </script>
+</body>
+</html>
